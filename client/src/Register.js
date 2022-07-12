@@ -6,8 +6,11 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAweomseIcon } from "@fortawesome/react-fontawesome";
 
+import axios from "./api/axios";
+
 // const USER_REGEX = /^[a-zA-Z][a-z-A-Z0-9-_]{3, 23}$/;
 // const PWD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%]).{8,24}$/;
+const REGISTER_URL = "/register";
 
 const Register = () => {
     const userRef = useRef();
@@ -17,11 +20,11 @@ const Register = () => {
     const [validName, setValidName] = useState(false);
     const [userFocus, setUserFocus] = useState(false);
 
-    const [pswrd, setPswrd] = useState("");
+    const [pwd, setPwd] = useState("");
     const [validPswrd, setValidPswrd] = useState(false);
-    const [pswrdFocus, setPswrdFocus] = useState(false);
+    const [pwdFocus, setPwdFocus] = useState(false);
 
-    const [matchPswrd, setMatchPswrd] = useState("");
+    const [matchPwd, setMatchPwd] = useState("");
     const [validMatch, setvalidMatch] = useState(false);
     const [matchFocus, setMatchFocus] = useState(false);
 
@@ -40,22 +43,33 @@ const Register = () => {
     }, [user]);
 
     useEffect(() => {
-        const result = pswrd.length > 7 ? true : false;
+        const result = pwd.length > 7 ? true : false;
         console.log(result);
-        console.log(pswrd);
+        console.log(pwd);
         setValidPswrd(result);
-        const match = pswrd === matchPswrd;
+        const match = pwd === matchPwd;
         setvalidMatch(match);
-    }, [pswrd, matchPswrd]);
+    }, [pwd, matchPwd]);
 
     useEffect(() => {
         setErrMsg("");
-    }, [user, pswrd, matchPswrd]);
+    }, [user, pwd, matchPwd]);
 
     async function handleSubmit(e) {
         e.preventDefault();
-        console.log(user, pswrd);
-        setSuccess(true);
+        try {
+            const response = await axios.post(
+                REGISTER_URL,
+                JSON.stringify({ user, pwd }),
+                {
+                    headers: { "Content-type": "application/json" },
+                    withCredentials: true,
+                }
+            );
+
+            console.log(response.data);
+            console.log(response.accessToken);
+        } catch (err) {}
     }
 
     return (
@@ -81,17 +95,17 @@ const Register = () => {
                 <input
                     type="password"
                     id="password"
-                    onChange={e => setPswrd(e.target.value)}
+                    onChange={e => setPwd(e.target.value)}
                     required
-                    onFocus={() => setPswrdFocus(true)}
-                    onBlur={() => setPswrdFocus(false)}
+                    onFocus={() => setPwdFocus(true)}
+                    onBlur={() => setPwdFocus(false)}
                 />
 
                 <label htmlFor="confirm-pwd">Confirm Password: </label>
                 <input
                     type="password"
                     id="confirm-pwd"
-                    onChange={e => setMatchPswrd(e.target.value)}
+                    onChange={e => setMatchPwd(e.target.value)}
                     required
                     onFocus={() => setMatchFocus(true)}
                     onBlur={() => setMatchFocus(false)}
