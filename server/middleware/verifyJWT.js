@@ -1,14 +1,20 @@
 import jwt from "jsonwebtoken";
+import User from "../models/users.js";
 
-export function verifyJWT(req, res, next) {
-    const token = req.headers["authorization"];
-    if (!token) return res.sendStatus(401);
-    console.log(token);
+export async function verifyJWT(req, res, next) {
+    const authHeader = req.headers["authorization"];
+    if (!authHeader) return res.sendStatus(401); //unauthorized
+    const token = authHeader.replace("Bearer", "").trim(); //token
 
-    // const token = authHeader.split[1]; //token
-    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
-        if (err) return res.sendStatus(403); //invalid token (forbidden)
-        req.userId = decoded._id;
+    try {
+        const decodedData = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+
+        const user = await User.findById(decodedData._id);
+        if (!user) throw new Error();
+
+        req.user = user;
         next();
-    });
+    } catch (err) {
+        res.status(401).json({ error: "Please authenticate" });
+    }
 }

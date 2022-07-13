@@ -2,6 +2,11 @@ import User from "../models/users.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 
+import {
+    REFRESH_TOKEN_EXPIRE_LENGTH,
+    ACCESS_TOKEN_EXPIRE_LENGTH,
+} from "../config/constants.js";
+
 export async function registerUser(req, res) {
     const { user, pwd } = req.body;
 
@@ -47,12 +52,12 @@ export async function loginUser(req, res) {
             const accessToken = jwt.sign(
                 { _id: foundUser._id.toString() },
                 process.env.ACCESS_TOKEN_SECRET,
-                { expiresIn: "20s" }
+                { expiresIn: ACCESS_TOKEN_EXPIRE_LENGTH }
             );
             const refreshToken = jwt.sign(
                 { _id: foundUser._id.toString() },
                 process.env.REFRESH_TOKEN_SECRET,
-                { expiresIn: "1d" }
+                { expiresIn: REFRESH_TOKEN_EXPIRE_LENGTH }
             );
 
             //Saving refreshToken with current user
@@ -74,6 +79,7 @@ export async function loginUser(req, res) {
 export async function logoutUser(req, res) {
     //On client, also delete the access token
 
+    //Looks for refreshToken Cookie -> if it doesn't exist, user is not logged in
     const cookies = req.cookies;
     if (!cookies?.jwt) return res.sendStatus(204); //No content
     const refreshToken = cookies.jwt;
@@ -122,7 +128,7 @@ export async function handleRefreshToken(req, res) {
                 const accessToken = jwt.sign(
                     { _id: data._id },
                     process.env.ACCESS_TOKEN_SECRET,
-                    { expiresIn: "20s" }
+                    { expiresIn: ACCESS_TOKEN_EXPIRE_LENGTH }
                 );
 
                 res.json({ accessToken });

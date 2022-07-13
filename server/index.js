@@ -10,7 +10,11 @@ import {
     logoutUser,
     handleRefreshToken,
 } from "./controllers/usersController.js";
-import { getData } from "./controllers/dataController.js";
+import {
+    getData,
+    createData,
+    deleteData,
+} from "./controllers/dataController.js";
 import { verifyJWT } from "./middleware/verifyJWT.js";
 
 const app = express();
@@ -26,12 +30,16 @@ app.use(express.json());
 //middleware for reading cookies
 app.use(cookieParser());
 
+//For users
 app.post("/register", bodyParser.json(), registerUser);
 app.post("/login", bodyParser.json(), loginUser);
-app.get("/logout", logoutUser);
+app.post("/logout", logoutUser);
 app.get("/refresh", handleRefreshToken);
 
+//For data
+app.post("/data", verifyJWT, createData);
 app.get("/data", verifyJWT, getData);
+app.delete("/data/:id", verifyJWT, deleteData);
 
 mongoose
     .connect(DB_URL)
