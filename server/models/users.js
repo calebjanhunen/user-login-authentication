@@ -10,7 +10,7 @@ const userSchema = new mongoose.Schema(
             type: String,
             required: true,
         },
-        refreshToken: String,
+        refreshToken: [String],
     },
     {
         collection: "user-data-test",

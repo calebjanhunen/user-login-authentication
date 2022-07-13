@@ -36,6 +36,7 @@ export async function registerUser(req, res) {
 }
 
 export async function loginUser(req, res) {
+    const cookies = req.cookies; //if logging in without explicitly logging out before -> this will exist
     const { user, pwd } = req.body;
     if (!user || !pwd)
         return res
@@ -54,19 +55,32 @@ export async function loginUser(req, res) {
                 process.env.ACCESS_TOKEN_SECRET,
                 { expiresIn: ACCESS_TOKEN_EXPIRE_LENGTH }
             );
-            const refreshToken = jwt.sign(
+            const newRefreshToken = jwt.sign(
                 { _id: foundUser._id.toString() },
                 process.env.REFRESH_TOKEN_SECRET,
                 { expiresIn: REFRESH_TOKEN_EXPIRE_LENGTH }
             );
 
-            //Saving refreshToken with current user
-            await User.findByIdAndUpdate(foundUser._id, { refreshToken });
+            //removing old refresh token
+            const newRefreshTokenArray = !cookies?.jwt
+                ? foundUser.refreshToken
+                : foundUser.refreshToken.filter(token => token !== cookies.jwt);
 
-            res.cookie("jwt", refreshToken, {
+            if (cookies.jwt)
+                res.clearCookie("jwt", {
+                    httpOnly: true,
+                    maxAge: 24 * 60 * 60 * 1000, //1 day
+                }); //secure: true -> only serves on https
+
+            res.cookie("jwt", newRefreshToken, {
                 httpOnly: true,
                 maxAge: 24 * 60 * 60 * 1000, //1 day
             });
+
+            //saving new refresh token to db
+            foundUser.refreshToken = [...newRefreshTokenArray, newRefreshToken];
+            const result = await foundUser.save();
+
             res.json({ accessToken });
         } else {
             res.sendStatus(401);
@@ -97,7 +111,11 @@ export async function logoutUser(req, res) {
         }
 
         //Delete refreshtoken in database
-        await User.findByIdAndUpdate(foundUser._id, { refreshToken: "" });
+        const newRefreshTokenArray = foundUser.refreshToken.filter(
+            token => token != refreshToken
+        );
+        foundUser.refreshToken = [...newRefreshTokenArray];
+        const result = await foundUser.save();
 
         res.clearCookie("jwt", {
             httpOnly: true,
@@ -112,24 +130,73 @@ export async function logoutUser(req, res) {
 export async function handleRefreshToken(req, res) {
     const cookies = req.cookies;
     if (!cookies?.jwt) return res.sendStatus(401);
-
     const refreshToken = cookies.jwt;
+
+    //delete refresh token cookie
+    res.clearCookie("jwt", {
+        httpOnly: true,
+        maxAge: 24 * 60 * 60 * 1000, //1 day
+    }); //secure: true -> only serves on https
+
     try {
         const foundUser = await User.findOne({ refreshToken });
-        if (!foundUser) res.sendStatus(403);
+
+        //Detected refresh token reuse (user not found -> logged out, but refresh token still being used)
+        if (!foundUser) {
+            res.sendStatus(403); //forbidden
+
+            jwt.verify(
+                refreshToken,
+                process.env.REFRESH_TOKEN_SECRET,
+                async (err, data) => {
+                    if (err) return res.sendStatus(403); // token is expired
+
+                    const hackedUser = await User.findById(data._id);
+                    hackedUser.refreshToken = [];
+                    const result = await hackedUser.save();
+                    console.log(result);
+                }
+            );
+        }
+
+        const newRefreshTokenArray = foundUser.refreshToken.filter(
+            token => token != refreshToken
+        );
 
         jwt.verify(
             refreshToken,
             process.env.REFRESH_TOKEN_SECRET,
-            (err, data) => {
+            async (err, data) => {
+                //old refresh token
+                if (err) {
+                    foundUser.refreshToken = [...newRefreshTokenArray];
+                    const result = await foundUser.save();
+                }
+
                 if (err || foundUser._id.toString() !== data._id)
                     return res.sendStatus(403);
 
+                //refresh token still valid
                 const accessToken = jwt.sign(
                     { _id: data._id },
                     process.env.ACCESS_TOKEN_SECRET,
                     { expiresIn: ACCESS_TOKEN_EXPIRE_LENGTH }
                 );
+                const newRefreshToken = jwt.sign(
+                    { _id: foundUser._id.toString() },
+                    process.env.REFRESH_TOKEN_SECRET,
+                    { expiresIn: REFRESH_TOKEN_EXPIRE_LENGTH }
+                );
+
+                foundUser.refreshToken = [
+                    ...newRefreshTokenArray,
+                    newRefreshToken,
+                ];
+
+                res.cookie("jwt", newRefreshToken, {
+                    httpOnly: true,
+                    maxAge: 24 * 60 * 60 * 1000, //1 day
+                });
 
                 res.json({ accessToken });
             }
