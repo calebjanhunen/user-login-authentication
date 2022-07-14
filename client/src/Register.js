@@ -18,22 +18,15 @@ const Register = () => {
 
     const [user, setUser] = useState("");
     const [validName, setValidName] = useState(false);
-    const [userFocus, setUserFocus] = useState(false);
 
     const [pwd, setPwd] = useState("");
     const [validPswrd, setValidPswrd] = useState(false);
-    const [pwdFocus, setPwdFocus] = useState(false);
 
     const [matchPwd, setMatchPwd] = useState("");
     const [validMatch, setvalidMatch] = useState(false);
-    const [matchFocus, setMatchFocus] = useState(false);
 
     const [errMsg, setErrMsg] = useState("");
     const [success, setSuccess] = useState(false);
-
-    useEffect(() => {
-        userRef.current.focus();
-    }, []);
 
     useEffect(() => {
         const result = user.length > 4 ? true : false;
@@ -43,8 +36,7 @@ const Register = () => {
     }, [user]);
 
     useEffect(() => {
-        const result = pwd.length > 7 ? true : false;
-        console.log(result);
+        const result = pwd.length > 3 ? true : false;
         console.log(pwd);
         setValidPswrd(result);
         const match = pwd === matchPwd;
@@ -62,14 +54,20 @@ const Register = () => {
                 REGISTER_URL,
                 JSON.stringify({ user, pwd }),
                 {
-                    headers: { "Content-type": "application/json" },
-                    withCredentials: true,
+                    headers: { "Content-Type": "application/json" },
+                    // withCredentials: true,
                 }
             );
 
             console.log(response.data);
             console.log(response.accessToken);
-        } catch (err) {}
+            setSuccess(true);
+            //clear input fields
+        } catch (err) {
+            if (!err?.response) setErrMsg("No server Response");
+            else if (err.response?.status(409)) setErrMsg("Username Taken");
+            else setErrMsg("Registration failed");
+        }
     }
 
     return (
@@ -83,12 +81,9 @@ const Register = () => {
                 <input
                     type="text"
                     id="username"
-                    ref={userRef}
                     autoComplete="off"
                     onChange={e => setUser(e.target.value)}
                     required
-                    onFocus={() => setUserFocus(true)}
-                    onBlur={() => setUserFocus(false)}
                 />
 
                 <label htmlFor="password">Password:</label>
@@ -97,8 +92,6 @@ const Register = () => {
                     id="password"
                     onChange={e => setPwd(e.target.value)}
                     required
-                    onFocus={() => setPwdFocus(true)}
-                    onBlur={() => setPwdFocus(false)}
                 />
 
                 <label htmlFor="confirm-pwd">Confirm Password: </label>
@@ -107,8 +100,6 @@ const Register = () => {
                     id="confirm-pwd"
                     onChange={e => setMatchPwd(e.target.value)}
                     required
-                    onFocus={() => setMatchFocus(true)}
-                    onBlur={() => setMatchFocus(false)}
                 />
 
                 <button

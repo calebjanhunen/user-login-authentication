@@ -18,7 +18,7 @@ export async function registerUser(req, res) {
     try {
         const duplicateUser = await User.findOne({ username: user });
         if (duplicateUser)
-            res.status(409).json({ message: "User already exists" }); //conflict
+            return res.status(409).json({ message: "User already exists" }); //conflict
 
         //encrypt password
         const hashedPwd = await bcrypt.hash(pwd, 10);
@@ -29,9 +29,9 @@ export async function registerUser(req, res) {
             password: hashedPwd,
         });
 
-        res.status(201).json({ success: `New user, ${user}, created` });
+        res.status(201).json({ data });
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        res.status(400).json({ message: err.message });
     }
 }
 
@@ -47,44 +47,42 @@ export async function loginUser(req, res) {
         const foundUser = await User.findOne({ username: user });
         if (!foundUser) return res.sendStatus(401); //unauthorized
 
-        const match = await bcrypt.compare(pwd, foundUser.password);
-        if (match) {
-            //Create JWTs
-            const accessToken = jwt.sign(
-                { _id: foundUser._id.toString() },
-                process.env.ACCESS_TOKEN_SECRET,
-                { expiresIn: ACCESS_TOKEN_EXPIRE_LENGTH }
-            );
-            const newRefreshToken = jwt.sign(
-                { _id: foundUser._id.toString() },
-                process.env.REFRESH_TOKEN_SECRET,
-                { expiresIn: REFRESH_TOKEN_EXPIRE_LENGTH }
-            );
+        const validPassword = await bcrypt.compare(pwd, foundUser.password);
+        if (!validPassword) return res.sendStatus(401);
 
-            //removing old refresh token
-            const newRefreshTokenArray = !cookies?.jwt
-                ? foundUser.refreshToken
-                : foundUser.refreshToken.filter(token => token !== cookies.jwt);
+        //Create JWTs
+        const accessToken = jwt.sign(
+            { _id: foundUser._id.toString() },
+            process.env.ACCESS_TOKEN_SECRET,
+            { expiresIn: ACCESS_TOKEN_EXPIRE_LENGTH }
+        );
+        const newRefreshToken = jwt.sign(
+            { _id: foundUser._id.toString() },
+            process.env.REFRESH_TOKEN_SECRET,
+            { expiresIn: REFRESH_TOKEN_EXPIRE_LENGTH }
+        );
 
-            if (cookies.jwt)
-                res.clearCookie("jwt", {
-                    httpOnly: true,
-                    maxAge: 24 * 60 * 60 * 1000, //1 day
-                }); //secure: true -> only serves on https
+        //removing old refresh token
+        const newRefreshTokenArray = !cookies?.jwt
+            ? foundUser.refreshToken
+            : foundUser.refreshToken.filter(token => token !== cookies.jwt);
 
-            res.cookie("jwt", newRefreshToken, {
+        if (cookies.jwt)
+            res.clearCookie("jwt", {
                 httpOnly: true,
                 maxAge: 24 * 60 * 60 * 1000, //1 day
-            });
+            }); //secure: true -> only serves on https
 
-            //saving new refresh token to db
-            foundUser.refreshToken = [...newRefreshTokenArray, newRefreshToken];
-            const result = await foundUser.save();
+        res.cookie("jwt", newRefreshToken, {
+            httpOnly: true,
+            maxAge: 24 * 60 * 60 * 1000, //1 day
+        });
 
-            res.json({ accessToken });
-        } else {
-            res.sendStatus(401);
-        }
+        //saving new refresh token to db
+        foundUser.refreshToken = [...newRefreshTokenArray, newRefreshToken];
+        const result = await foundUser.save();
+
+        res.json({ accessToken });
     } catch (err) {
         res.json({ status: "error", error: err.message });
     }

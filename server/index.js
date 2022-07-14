@@ -31,8 +31,8 @@ app.use(express.json());
 app.use(cookieParser());
 
 //For users
-app.post("/register", bodyParser.json(), registerUser);
-app.post("/login", bodyParser.json(), loginUser);
+app.post("/register", registerUser);
+app.post("/login", loginUser);
 app.post("/logout", logoutUser);
 app.get("/refresh", handleRefreshToken);
 
