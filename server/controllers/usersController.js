@@ -7,31 +7,47 @@ import {
     ACCESS_TOKEN_EXPIRE_LENGTH,
 } from "../config/constants.js";
 
+function createAccessToken(user) {
+    return jwt.sign(
+        { _id: user._id.toString() },
+        process.env.ACCESS_TOKEN_SECRET,
+        { expiresIn: ACCESS_TOKEN_EXPIRE_LENGTH }
+    );
+}
+
+function createRefreshTokenCookie(refreshToken, req, res) {
+    const cookies = req.cookies; //if logging in without explicitly logging out before -> this will exist
+
+    // if (cookies.refreshToken)
+    //     res.clearCookie("refreshToken", {
+    //         httpOnly: true,
+    //         maxAge: 24 * 60 * 60 * 1000, //1 day
+    //     }); //secure: true -> only serves on https
+
+    res.cookie("refreshToken", refreshToken, {
+        httpOnly: true,
+        maxAge: 24 * 60 * 60 * 1000, //1 day
+    });
+}
+
 export async function registerUser(req, res) {
     const { user, pwd } = req.body;
 
-    if (!user || !pwd)
-        return res
-            .status(400)
-            .json({ message: "Username and password are required" });
-
     try {
-        const duplicateUser = await User.findOne({ username: user });
-        if (duplicateUser)
-            return res.status(409).json({ message: "User already exists" }); //conflict
-
-        //encrypt password
-        const hashedPwd = await bcrypt.hash(pwd, 10);
-
         //create and store user
         const data = await User.create({
             username: user,
-            password: hashedPwd,
+            password: pwd,
         });
+        const accessToken = createAccessToken(data);
+        const refreshToken = await data.generateRefreshToken();
+        createRefreshTokenCookie(refreshToken, req, res);
 
-        res.status(201).json({ data });
+        res.status(201).json({ data, accessToken });
     } catch (err) {
-        res.status(400).json({ message: err.message });
+        err.code === 11000
+            ? res.status(400).json({ error: "User already exists" })
+            : res.status(400).json({ error: err.message });
     }
 }
 
@@ -45,17 +61,19 @@ export async function loginUser(req, res) {
 
     try {
         const foundUser = await User.findOne({ username: user });
-        if (!foundUser) return res.sendStatus(401); //unauthorized
+        if (!foundUser)
+            return res
+                .sendStatus(401)
+                .json({ message: "Invalid email or password" }); //unauthorized
 
         const validPassword = await bcrypt.compare(pwd, foundUser.password);
-        if (!validPassword) return res.sendStatus(401);
+        if (!validPassword)
+            return res
+                .sendStatus(401)
+                .json({ message: "Invalid email or password" });
 
         //Create JWTs
-        const accessToken = jwt.sign(
-            { _id: foundUser._id.toString() },
-            process.env.ACCESS_TOKEN_SECRET,
-            { expiresIn: ACCESS_TOKEN_EXPIRE_LENGTH }
-        );
+        const accessToken = createAccessToken(foundUser);
         const newRefreshToken = jwt.sign(
             { _id: foundUser._id.toString() },
             process.env.REFRESH_TOKEN_SECRET,
@@ -65,15 +83,17 @@ export async function loginUser(req, res) {
         //removing old refresh token
         const newRefreshTokenArray = !cookies?.jwt
             ? foundUser.refreshToken
-            : foundUser.refreshToken.filter(token => token !== cookies.jwt);
+            : foundUser.refreshToken.filter(
+                  token => token !== cookies.refreshToken
+              );
 
-        if (cookies.jwt)
-            res.clearCookie("jwt", {
+        if (cookies.refreshToken)
+            res.clearCookie("refreshToken", {
                 httpOnly: true,
                 maxAge: 24 * 60 * 60 * 1000, //1 day
             }); //secure: true -> only serves on https
 
-        res.cookie("jwt", newRefreshToken, {
+        res.cookie("refreshToken", newRefreshToken, {
             httpOnly: true,
             maxAge: 24 * 60 * 60 * 1000, //1 day
         });
@@ -94,13 +114,13 @@ export async function logoutUser(req, res) {
     //Looks for refreshToken Cookie -> if it doesn't exist, user is not logged in
     const cookies = req.cookies;
     if (!cookies?.jwt) return res.sendStatus(204); //No content
-    const refreshToken = cookies.jwt;
+    const refreshToken = cookies.refreshToken;
 
     try {
         //is refresh token in database?
         const foundUser = await User.findOne({ refreshToken });
         if (!foundUser) {
-            res.clearCookie("jwt", {
+            res.clearCookie("refreshToken", {
                 httpOnly: true,
                 maxAge: 24 * 60 * 60 * 1000, //1 day
             });
@@ -115,7 +135,7 @@ export async function logoutUser(req, res) {
         foundUser.refreshToken = [...newRefreshTokenArray];
         const result = await foundUser.save();
 
-        res.clearCookie("jwt", {
+        res.clearCookie("refreshToken", {
             httpOnly: true,
             maxAge: 24 * 60 * 60 * 1000, //1 day
         }); //secure: true -> only serves on https
@@ -128,10 +148,10 @@ export async function logoutUser(req, res) {
 export async function handleRefreshToken(req, res) {
     const cookies = req.cookies;
     if (!cookies?.jwt) return res.sendStatus(401);
-    const refreshToken = cookies.jwt;
+    const refreshToken = cookies.refreshToken;
 
     //delete refresh token cookie
-    res.clearCookie("jwt", {
+    res.clearCookie("refreshToken", {
         httpOnly: true,
         maxAge: 24 * 60 * 60 * 1000, //1 day
     }); //secure: true -> only serves on https
@@ -191,7 +211,7 @@ export async function handleRefreshToken(req, res) {
                     newRefreshToken,
                 ];
 
-                res.cookie("jwt", newRefreshToken, {
+                res.cookie("refreshToken", newRefreshToken, {
                     httpOnly: true,
                     maxAge: 24 * 60 * 60 * 1000, //1 day
                 });

@@ -22,9 +22,14 @@ const app = express();
 const DB_URL = `mongodb+srv://${process.env.DB_USERNAME}:${process.env.DB_PASSWORD}@cluster0.lxuni.mongodb.net/UsersTestDB?retryWrites=true&w=majority`;
 
 //built-in middleware: Cross origin Resource Sharing
-app.use(cors());
+app.use(
+    cors({
+        credentials: true,
+        origin: "http://localhost:3000",
+    })
+);
 
-//build-in middleware: for reading json
+//built-in middleware: for reading json
 app.use(express.json());
 
 //middleware for reading cookies

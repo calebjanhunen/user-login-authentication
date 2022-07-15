@@ -36,16 +36,12 @@ const Register = () => {
     }, [user]);
 
     useEffect(() => {
-        const result = pwd.length > 3 ? true : false;
+        const result = pwd.length > 7 ? true : false;
         console.log(pwd);
         setValidPswrd(result);
         const match = pwd === matchPwd;
         setvalidMatch(match);
     }, [pwd, matchPwd]);
-
-    useEffect(() => {
-        setErrMsg("");
-    }, [user, pwd, matchPwd]);
 
     async function handleSubmit(e) {
         e.preventDefault();
@@ -55,7 +51,7 @@ const Register = () => {
                 JSON.stringify({ user, pwd }),
                 {
                     headers: { "Content-Type": "application/json" },
-                    // withCredentials: true,
+                    withCredentials: true,
                 }
             );
 
@@ -64,9 +60,10 @@ const Register = () => {
             setSuccess(true);
             //clear input fields
         } catch (err) {
-            if (!err?.response) setErrMsg("No server Response");
-            else if (err.response?.status(409)) setErrMsg("Username Taken");
-            else setErrMsg("Registration failed");
+            console.log(err.response.status, err.response.data);
+            // if (!err?.response) console.log("No server Response");
+            // else if (err.response?.status(409)) console.log("Username Taken");
+            // else console.log("Registration failed");
         }
     }
 
