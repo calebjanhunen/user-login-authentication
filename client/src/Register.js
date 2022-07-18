@@ -1,10 +1,4 @@
 import React, { useState, useRef, useEffect } from "react";
-import {
-    faCheck,
-    faTimes,
-    faInfoCircle,
-} from "@fortawesome/free-solid-svg-icons";
-import { FontAweomseIcon } from "@fortawesome/react-fontawesome";
 
 import axios from "./api/axios";
 
@@ -13,7 +7,6 @@ import axios from "./api/axios";
 const REGISTER_URL = "/register";
 
 const Register = () => {
-    const userRef = useRef();
     const errRef = useRef();
 
     const [user, setUser] = useState("");
@@ -61,9 +54,6 @@ const Register = () => {
             //clear input fields
         } catch (err) {
             console.log(err.response.status, err.response.data);
-            // if (!err?.response) console.log("No server Response");
-            // else if (err.response?.status(409)) console.log("Username Taken");
-            // else console.log("Registration failed");
         }
     }
 
@@ -73,7 +63,7 @@ const Register = () => {
                 {errMsg}
             </p>
             <h1>Register</h1>
-            <form onSubmit={e => handleSubmit(e)}>
+            <form onSubmit={handleSubmit}>
                 <label htmlFor="username">Username:</label>
                 <input
                     type="text"

@@ -24,6 +24,13 @@ code {
     /* width: 100px; */
 }
 
+.sign-in-form {
+    display: flex;
+    /* flex-direction: column; */
+    justify-content: center;
+    /* width: 100px; */
+}
+
 form {
     display: flex;
     flex-direction: column;
