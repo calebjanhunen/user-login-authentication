@@ -21,34 +21,56 @@ const userSchema = new mongoose.Schema(
             type: Date,
             default: Date.now,
         },
-        refreshToken: [String],
+        refreshTokens: [String],
     },
     {
         collection: "user-data-test",
     }
 );
 
-userSchema.methods.generateRefreshToken = async function () {
+userSchema.methods.generateRefreshToken = async function (cookies, res) {
     const user = this;
 
-    const refreshToken = jwt.sign(
-        { _id: user._id.toString() },
-        process.env.REFRESH_TOKEN_SECRET,
-        { expiresIn: REFRESH_TOKEN_EXPIRE_LENGTH }
-    );
+    try {
+        //if refresh token cookie exists -> clear it
+        if (cookies.refreshToken)
+            res.clearCookie("refreshToken", {
+                httpOnly: true,
+                maxAge: 24 * 60 * 60 * 1000, //1 day
+            }); //secure: true -> only serves on https
 
-    user.refreshToken = [...user.refreshToken, refreshToken];
-    await user.save();
+        //filter out already existing refresh token
+        const refreshTokenArray = cookies.refreshToken
+            ? user.refreshTokens.filter(token => token !== cookies.refreshToken)
+            : user.refreshTokens;
 
-    return refreshToken;
+        const refreshToken = jwt.sign(
+            { _id: user._id.toString() },
+            process.env.REFRESH_TOKEN_SECRET,
+            { expiresIn: REFRESH_TOKEN_EXPIRE_LENGTH }
+        );
+
+        res.cookie("refreshToken", refreshToken, {
+            httpOnly: true,
+            maxAge: 24 * 60 * 60 * 1000, //1 day
+        });
+
+        user.refreshTokens = [...refreshTokenArray, refreshToken];
+        await user.save();
+
+        return refreshToken;
+    } catch (err) {
+        console.log(err);
+        return err;
+    }
 };
 
 //hash plain text password before saving
-userSchema.pre("save", async function (next) {
-    const user = this;
-    user.password = await bcrypt.hash(user.password, 10);
-    next();
-});
+// userSchema.pre("save", async function (next) {
+//     const user = this;
+//     user.password = await bcrypt.hash(user.password, 10);
+//     next();
+// });
 
 const User = mongoose.model("UserDataTest", userSchema);
 
