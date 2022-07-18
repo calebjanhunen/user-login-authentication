@@ -2,7 +2,10 @@ import mongoose from "mongoose";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 
-import { REFRESH_TOKEN_EXPIRE_LENGTH } from "../config/constants.js";
+import {
+    REFRESH_TOKEN_EXPIRE_LENGTH,
+    REFRESH_TOKEN_COOKIE_EXPIRE_LENGTH,
+} from "../config/constants.js";
 
 const userSchema = new mongoose.Schema(
     {
@@ -36,7 +39,7 @@ userSchema.methods.generateRefreshToken = async function (cookies, res) {
         if (cookies.refreshToken)
             res.clearCookie("refreshToken", {
                 httpOnly: true,
-                maxAge: 24 * 60 * 60 * 1000, //1 day
+                maxAge: REFRESH_TOKEN_COOKIE_EXPIRE_LENGTH,
             }); //secure: true -> only serves on https
 
         //filter out already existing refresh token
@@ -52,7 +55,7 @@ userSchema.methods.generateRefreshToken = async function (cookies, res) {
 
         res.cookie("refreshToken", refreshToken, {
             httpOnly: true,
-            maxAge: 24 * 60 * 60 * 1000, //1 day
+            maxAge: REFRESH_TOKEN_COOKIE_EXPIRE_LENGTH,
         });
 
         user.refreshTokens = [...refreshTokenArray, refreshToken];
@@ -64,13 +67,6 @@ userSchema.methods.generateRefreshToken = async function (cookies, res) {
         return err;
     }
 };
-
-//hash plain text password before saving
-// userSchema.pre("save", async function (next) {
-//     const user = this;
-//     user.password = await bcrypt.hash(user.password, 10);
-//     next();
-// });
 
 const User = mongoose.model("UserDataTest", userSchema);
 

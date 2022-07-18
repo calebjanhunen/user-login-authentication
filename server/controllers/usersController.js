@@ -5,6 +5,7 @@ import jwt from "jsonwebtoken";
 import {
     REFRESH_TOKEN_EXPIRE_LENGTH,
     ACCESS_TOKEN_EXPIRE_LENGTH,
+    REFRESH_TOKEN_COOKIE_EXPIRE_LENGTH,
 } from "../config/constants.js";
 import { createAccessToken } from "../utils/generateTokens.js";
 
@@ -54,12 +55,7 @@ export async function loginUser(req, res) {
 
         //Create JWTs
         const accessToken = createAccessToken(foundUser);
-        const refreshToken = await foundUser.generateRefreshToken(cookies, res);
-
-        res.cookie("refreshToken", refreshToken, {
-            httpOnly: true,
-            maxAge: 24 * 60 * 60 * 1000, //1 day
-        });
+        await foundUser.generateRefreshToken(cookies, res);
 
         res.json({ foundUser, accessToken });
     } catch (err) {
@@ -72,6 +68,7 @@ export async function logoutUser(req, res) {
 
     //Looks for refreshToken Cookie -> if it doesn't exist, user is not logged in
     const cookies = req.cookies;
+    console.log(cookies);
     if (!cookies?.refreshToken)
         return res.status(401).json({ message: "User not logged in" }); //No content
     const refreshToken = cookies.refreshToken;
@@ -82,7 +79,7 @@ export async function logoutUser(req, res) {
         if (!foundUser) {
             res.clearCookie("refreshToken", {
                 httpOnly: true,
-                maxAge: 24 * 60 * 60 * 1000, //1 day
+                maxAge: REFRESH_TOKEN_COOKIE_EXPIRE_LENGTH,
             });
 
             return res.sendStatus(204);
@@ -97,7 +94,7 @@ export async function logoutUser(req, res) {
 
         res.clearCookie("refreshToken", {
             httpOnly: true,
-            maxAge: 24 * 60 * 60 * 1000, //1 day
+            maxAge: REFRESH_TOKEN_COOKIE_EXPIRE_LENGTH,
         }); //secure: true -> only serves on https
         res.sendStatus(204);
     } catch (err) {
@@ -107,17 +104,32 @@ export async function logoutUser(req, res) {
 
 export async function handleRefreshToken(req, res) {
     const cookies = req.cookies;
-    console.log(cookies);
-    if (!cookies?.refreshToken) return res.sendStatus(401);
+
+    if (!cookies?.refreshToken)
+        return res.status(401).json({ message: "not logged in" });
     const refreshToken = cookies.refreshToken;
 
     try {
         const foundUser = await User.findOne({ refreshToken });
         if (!foundUser)
-            return res.status(401).json({ message: "Not logged in" });
+            return res.status(401).json({ message: "invalid refresh token" });
 
-        res.json({ foundUser });
+        jwt.verify(
+            refreshToken,
+            process.env.REFRESH_TOKEN_SECRET,
+            (err, data) => {
+                if (err)
+                    return res
+                        .status(401)
+                        .json({ message: "refresh token expired" });
+
+                const accessToken = createAccessToken(foundUser);
+
+                res.json({ accessToken });
+            }
+        );
     } catch (err) {
-        res.json({ message: err.message });
+        console.log(err);
+        res.status(400).json({ message: err.message });
     }
 }
