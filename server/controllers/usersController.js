@@ -112,7 +112,7 @@ export async function handleRefreshToken(req, res) {
     try {
         const foundUser = await User.findOne({ refreshToken });
         if (!foundUser)
-            return res.status(401).json({ message: "invalid refresh token" });
+            return res.status(403).json({ message: "invalid refresh token" });
 
         jwt.verify(
             refreshToken,

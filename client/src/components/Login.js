@@ -1,38 +1,36 @@
 import { useState } from "react";
-import axios from "../api/axios";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
-import useAuth from "../hooks/useAuth";
+import { useDispatch } from "react-redux";
+import { setCredentials } from "../features/auth/authSlice";
+import { useLoginMutation } from "../features/auth/authApiSlice";
 
 const Login = () => {
     const [user, setUser] = useState("");
     const [pwd, setPwd] = useState("");
-    const { setAuth } = useAuth();
+    const [login, { isLoading }] = useLoginMutation();
 
     const navigate = useNavigate();
-    const location = useLocation();
-    const from = location.state?.from?.pathname || "/";
+    const dispatch = useDispatch();
 
     async function handleSubmit(e) {
         e.preventDefault();
 
         try {
-            const response = await axios.post(
-                "/login",
-                JSON.stringify({ user, pwd }),
-                {
-                    headers: { "Content-Type": "application/json" },
-                    withCredentials: true,
-                }
-            );
-            const accessToken = response.data.accessToken;
-            setAuth({ user, pwd, accessToken });
+            const userData = await login({ user, pwd }).unwrap();
+            dispatch(setCredentials({ user, token: userData.accessToken }));
+            console.log(userData);
             setUser("");
             setPwd("");
-
-            navigate(from, { replace: true });
+            navigate("/welcome");
         } catch (err) {
-            console.log(err.response.status, err.response.data);
+            if (!err.data) {
+                console.log("Server error");
+            } else if (err.status === 401) {
+                console.log(err.data.message);
+            } else {
+                console.log(err.data);
+            }
         }
     }
 

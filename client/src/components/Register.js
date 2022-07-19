@@ -1,7 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
 
-import axios from "../api/axios";
-
 // const USER_REGEX = /^[a-zA-Z][a-z-A-Z0-9-_]{3, 23}$/;
 // const PWD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%]).{8,24}$/;
 const REGISTER_URL = "/register";
@@ -39,17 +37,6 @@ const Register = () => {
     async function handleSubmit(e) {
         e.preventDefault();
         try {
-            const response = await axios.post(
-                REGISTER_URL,
-                JSON.stringify({ user, pwd }),
-                {
-                    headers: { "Content-Type": "application/json" },
-                    withCredentials: true,
-                }
-            );
-
-            console.log(response.data);
-            console.log(response.accessToken);
             setSuccess(true);
             //clear input fields
         } catch (err) {
@@ -100,7 +87,7 @@ const Register = () => {
                     Already registered? <br />
                     <span>
                         {/*router link here */}
-                        <a href="#">Sign In</a>
+                        <a href="/login">Sign In</a>
                     </span>
                 </p>
             </form>
