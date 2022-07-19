@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 
-import axios from "./api/axios";
+import axios from "../api/axios";
 
 // const USER_REGEX = /^[a-zA-Z][a-z-A-Z0-9-_]{3, 23}$/;
 // const PWD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%]).{8,24}$/;
