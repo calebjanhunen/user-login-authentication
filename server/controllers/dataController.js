@@ -3,6 +3,7 @@ import Data from "../models/data.js";
 export async function createData(req, res) {
     let status = 400;
     const { title } = req.body;
+    console.log(title);
 
     if (!title) {
         status = 400;

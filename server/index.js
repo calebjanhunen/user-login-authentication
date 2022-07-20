@@ -42,7 +42,7 @@ app.post("/logout", logoutUser);
 app.get("/refresh", handleRefreshToken);
 
 //For data
-app.post("/data", verifyJWT, createData);
+app.post("/data", verifyJWT, bodyParser.json(), createData);
 app.get("/data", verifyJWT, getData);
 app.delete("/data/:id", verifyJWT, deleteData);
 

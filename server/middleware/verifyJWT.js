@@ -15,6 +15,6 @@ export async function verifyJWT(req, res, next) {
         req.user = user;
         next();
     } catch (err) {
-        res.status(401).json({ error: "Please authenticate" });
+        res.status(403).json({ error: "Please authenticate" });
     }
 }
