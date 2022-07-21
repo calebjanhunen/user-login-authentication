@@ -14,8 +14,7 @@ const Navbar = () => {
     async function handleLogout() {
         dispatch(frontEndLogout());
 
-        const data = await logout();
-        console.log(data);
+        await logout();
     }
 
     return (
