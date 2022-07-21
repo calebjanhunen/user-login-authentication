@@ -126,7 +126,7 @@ export async function handleRefreshToken(req, res) {
 
                 const accessToken = createAccessToken(foundUser);
 
-                res.json({ user: foundUser.username, accessToken });
+                res.json({ accessToken });
             }
         );
     } catch (err) {

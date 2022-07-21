@@ -23,15 +23,15 @@ function App() {
                 <Route path="register" element={<Register />} />
                 <Route path="login" element={<Login />} />
 
-                {/* <Route element={<PersistLogin />}> */}
-                <Route element={<RequireAuth />}>
-                    {/*Protected routes */}
-                    <Route path="home" element={<Home />} />
-                    <Route path="data" element={<Data />} />
-                    <Route path="createdata" element={<CreateData />} />
-                    <Route path="welcome" element={<Welcome />} />
+                <Route element={<PersistLogin />}>
+                    <Route element={<RequireAuth />}>
+                        {/*Protected routes */}
+                        <Route path="home" element={<Home />} />
+                        <Route path="data" element={<Data />} />
+                        <Route path="createdata" element={<CreateData />} />
+                        <Route path="welcome" element={<Welcome />} />
+                    </Route>
                 </Route>
-                {/* </Route> */}
 
                 {/* Catch All */}
                 <Route path="*" element={<PageNotFound />} />
