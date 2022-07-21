@@ -1,11 +1,22 @@
 import React from "react";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { Link } from "react-router-dom";
 
 import { selectCurrentToken } from "../features/auth/authSlice";
+import { frontEndLogout } from "../features/auth/authSlice";
+import { useLogoutMutation } from "../features/auth/authApiSlice";
 
 const Navbar = () => {
     const token = useSelector(selectCurrentToken);
+    const dispatch = useDispatch();
+    const [logout] = useLogoutMutation();
+
+    async function handleLogout() {
+        dispatch(frontEndLogout());
+
+        const data = await logout();
+        console.log(data);
+    }
 
     return (
         <nav>
@@ -20,7 +31,7 @@ const Navbar = () => {
                     <Link to="/createdata">Create Data</Link>
                 </li>
             </ul>
-            {token && <button>Logout</button>}
+            {token && <button onClick={handleLogout}>Logout</button>}
         </nav>
     );
 };
