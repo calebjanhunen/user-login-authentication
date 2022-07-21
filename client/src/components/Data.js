@@ -5,6 +5,7 @@ import {
     useGetDataQuery,
     useDeleteDataMutation,
 } from "../features/data/dataApiSlice";
+import Navbar from "./Navbar";
 
 const Data = () => {
     const { data, isLoading, isSuccess, isError, error } = useGetDataQuery();
@@ -36,7 +37,12 @@ const Data = () => {
     } else if (isError) {
         content = <p>{error}</p>;
     }
-    return content;
+    return (
+        <>
+            <Navbar />
+            {content}
+        </>
+    );
 };
 
 export default Data;

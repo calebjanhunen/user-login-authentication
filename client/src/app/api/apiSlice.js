@@ -8,7 +8,7 @@ const baseQuery = fetchBaseQuery({
         //ataches access token to header on each request
 
         const token = getState().auth.token;
-        console.log(getState().auth);
+
         if (token) {
             headers.set("authorization", `Bearer ${token}`);
         }

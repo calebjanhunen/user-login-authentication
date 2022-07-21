@@ -68,7 +68,7 @@ export async function logoutUser(req, res) {
 
     //Looks for refreshToken Cookie -> if it doesn't exist, user is not logged in
     const cookies = req.cookies;
-    console.log(cookies);
+    // console.log(cookies);
     if (!cookies?.refreshToken)
         return res.status(401).json({ message: "User not logged in" }); //No content
     const refreshToken = cookies.refreshToken;
@@ -110,7 +110,8 @@ export async function handleRefreshToken(req, res) {
     const refreshToken = cookies.refreshToken;
 
     try {
-        const foundUser = await User.findOne({ refreshToken });
+        const foundUser = await User.findOne({ refreshTokens: refreshToken });
+        console.log(req.user);
         if (!foundUser)
             return res.status(403).json({ message: "invalid refresh token" });
 
@@ -125,7 +126,7 @@ export async function handleRefreshToken(req, res) {
 
                 const accessToken = createAccessToken(foundUser);
 
-                res.json({ accessToken });
+                res.json({ user: foundUser.username, accessToken });
             }
         );
     } catch (err) {

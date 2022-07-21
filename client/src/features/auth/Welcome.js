@@ -1,4 +1,5 @@
 import { useSelector } from "react-redux";
+import Navbar from "../../components/Navbar";
 import { selectCurrentUser, selectCurrentToken } from "./authSlice";
 
 const Welcome = () => {
@@ -9,6 +10,7 @@ const Welcome = () => {
 
     const displayContent = (
         <div>
+            <Navbar />
             <h1>{welcome}</h1>
             <p>Token: {token}</p>
         </div>
