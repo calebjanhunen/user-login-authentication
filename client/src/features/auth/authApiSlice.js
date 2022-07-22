@@ -25,4 +25,5 @@ export const {
     useLoginMutation,
     useLogoutMutation,
     useRefreshAccessTokenQuery,
+    useLazyRefreshAccessTokenQuery,
 } = authApiSlice;

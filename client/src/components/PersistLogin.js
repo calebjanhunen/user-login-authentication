@@ -1,43 +1,32 @@
 import { Outlet } from "react-router-dom";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 
-import { useRefreshAccessTokenQuery } from "../features/auth/authApiSlice";
-import {
-    selectCurrentToken,
-    selectCurrentUser,
-    setCredentials,
-    setNewAccessToken,
-} from "../features/auth/authSlice";
+import { useLazyRefreshAccessTokenQuery } from "../features/auth/authApiSlice";
+import { selectCurrentToken, setCredentials } from "../features/auth/authSlice";
 
 const PersistLogin = () => {
     const dispatch = useDispatch();
     const accessToken = useSelector(selectCurrentToken);
     const [isLoading, setIsLoading] = useState(true);
-    const [skip, setSkip] = useState(true);
-    const {
-        data: newAccessToken,
-        isError,
-        isSuccess,
-        error,
-    } = useRefreshAccessTokenQuery(undefined, { skip });
-    // console.log(newAccessToken);
 
+    const [refreshAccessToken] = useLazyRefreshAccessTokenQuery();
     useEffect(() => {
-        function verifyRefreshToken() {
-            setSkip(false);
-            if (isSuccess) {
-                console.log(newAccessToken);
+        async function verifyRefreshToken() {
+            try {
+                const { data } = await refreshAccessToken();
+                // console.log(data);
                 dispatch(
-                    setNewAccessToken({ token: newAccessToken.accessToken })
+                    setCredentials({ user: data.user, token: data.accessToken })
                 );
-            } else if (isError) {
-                console.log(error);
+            } catch (err) {
+                console.log(err);
+            } finally {
+                setIsLoading(false);
             }
         }
-        !accessToken && verifyRefreshToken();
-        setIsLoading(false);
-    }, [accessToken, dispatch, error, isError, isSuccess, newAccessToken]);
+        !accessToken ? verifyRefreshToken() : setIsLoading(false);
+    }, [accessToken, refreshAccessToken, dispatch]);
 
     return <>{isLoading ? <p>Loading...</p> : <Outlet />}</>;
 };
